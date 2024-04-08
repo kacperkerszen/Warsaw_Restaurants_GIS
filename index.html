@@ -1,0 +1,1797 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Warsaw Restaurant Site Selection</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet-heat.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet.markercluster.js"></script>
+        <script src="data/restaurants_heatmap_1.js"></script>
+        <script src="data/pizza_heatmap_2.js"></script>
+        <script src="data/pizza_h3_3.js"></script>
+        <script src="data/h3_1km_all_4.js"></script>
+        <script src="data/restaurants_5.js"></script>
+        <script src="data/warsaw_density_age_6.js"></script>
+        <script src="data/warsaw_dist_pop_7.js"></script>
+        <script src="data/warsaw_dist_8.js"></script>
+        <script src="data/warsaw_bond_9.js"></script>
+        <script src="data/offers_10.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        }).fitBounds([[52.047111955814145,20.661709834486842],[52.43094222681683,21.51413506312841]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        document.querySelector(".leaflet-popup-pane").addEventListener("load", function(event) {
+          var tagName = event.target.tagName,
+            popup = map._popup;
+          // Also check if flag is already set.
+          if (tagName === "IMG" && popup && !popup._updated) {
+            popup._updated = true; // Set flag to prevent looping.
+            popup.update();
+          }
+        }, true);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 18
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        function pop_restaurants_heatmap_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['addr_house'] !== null ? autolinker.link(feature.properties['addr_house'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['addr_stree'] !== null ? autolinker.link(feature.properties['addr_stree'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cuisine'] !== null ? autolinker.link(feature.properties['cuisine'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CATEGORY'] !== null ? autolinker.link(feature.properties['CATEGORY'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        map.createPane('pane_restaurants_heatmap_1');
+        map.getPane('pane_restaurants_heatmap_1').style.zIndex = 401;
+        map.getPane('pane_restaurants_heatmap_1').style['mix-blend-mode'] = 'normal';
+        var restaurants_heatmap_1_hm = geoJson2heat(json_restaurants_heatmap_1,
+                                      '');
+        var layer_restaurants_heatmap_1 = new L.heatLayer(restaurants_heatmap_1_hm, {
+            attribution: '',
+            interactive: true,
+            radius: 40,
+            max: 1,
+            minOpacity: 1,
+            gradient: {0: '#fff5f0', 0.13: '#fee0d2', 0.26: '#fcbba1', 0.39: '#fc9272', 0.52: '#fb6a4a', 0.65: '#ef3b2c', 0.78: '#cb181d', 0.9: '#a50f15', 1: '#67000d'}});
+        bounds_group.addLayer(layer_restaurants_heatmap_1);
+        function pop_pizza_heatmap_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['addr_house'] !== null ? autolinker.link(feature.properties['addr_house'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['addr_stree'] !== null ? autolinker.link(feature.properties['addr_stree'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['cuisine'] !== null ? autolinker.link(feature.properties['cuisine'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CATEGORY'] !== null ? autolinker.link(feature.properties['CATEGORY'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        map.createPane('pane_pizza_heatmap_2');
+        map.getPane('pane_pizza_heatmap_2').style.zIndex = 402;
+        map.getPane('pane_pizza_heatmap_2').style['mix-blend-mode'] = 'normal';
+        var pizza_heatmap_2_hm = geoJson2heat(json_pizza_heatmap_2,
+                                      '');
+        var layer_pizza_heatmap_2 = new L.heatLayer(pizza_heatmap_2_hm, {
+            attribution: '',
+            interactive: true,
+            radius: 30,
+            max: 1,
+            minOpacity: 1,
+            gradient: {0: '#f7fcf5', 0.13: '#e5f5e0', 0.26: '#c7e9c0', 0.39: '#a1d99b', 0.52: '#74c476', 0.65: '#41ab5d', 0.78: '#238b45', 0.9: '#006d2c', 1: '#00441b'}});
+        bounds_group.addLayer(layer_pizza_heatmap_2);
+        function pop_pizza_h3_3(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['left'] !== null ? autolinker.link(feature.properties['left'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['top'] !== null ? autolinker.link(feature.properties['top'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['right'] !== null ? autolinker.link(feature.properties['right'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['bottom'] !== null ? autolinker.link(feature.properties['bottom'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NUMPOINTS'] !== null ? autolinker.link(feature.properties['NUMPOINTS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_pizza_h3_3_0(feature) {
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,252,245,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(237,248,233,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,244,221,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(210,237,203,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(191,230,185,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(171,221,164,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(148,211,144,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(123,199,124,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(96,186,108,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 2.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(68,172,94,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 2.000000 && feature.properties['NUMPOINTS'] <= 2.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(50,155,81,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 2.000000 && feature.properties['NUMPOINTS'] <= 3.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(33,138,68,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 3.000000 && feature.properties['NUMPOINTS'] <= 3.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(13,120,53,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 3.000000 && feature.properties['NUMPOINTS'] <= 3.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,97,39,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 3.000000 && feature.properties['NUMPOINTS'] <= 8.000000 ) {
+                return {
+                pane: 'pane_pizza_h3_3',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,68,27,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_pizza_h3_3');
+        map.getPane('pane_pizza_h3_3').style.zIndex = 403;
+        map.getPane('pane_pizza_h3_3').style['mix-blend-mode'] = 'normal';
+        var layer_pizza_h3_3 = new L.geoJson(json_pizza_h3_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_pizza_h3_3',
+            layerName: 'layer_pizza_h3_3',
+            pane: 'pane_pizza_h3_3',
+            onEachFeature: pop_pizza_h3_3,
+            style: style_pizza_h3_3_0,
+        });
+        bounds_group.addLayer(layer_pizza_h3_3);
+        function pop_h3_1km_all_4(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['left'] !== null ? autolinker.link(feature.properties['left'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['top'] !== null ? autolinker.link(feature.properties['top'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['right'] !== null ? autolinker.link(feature.properties['right'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['bottom'] !== null ? autolinker.link(feature.properties['bottom'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NUMPOINTS'] !== null ? autolinker.link(feature.properties['NUMPOINTS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_h3_1km_all_4_0(feature) {
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,245,240,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,233,224,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,220,205,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 1.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(253,200,178,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 1.000000 && feature.properties['NUMPOINTS'] <= 2.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,179,152,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 2.000000 && feature.properties['NUMPOINTS'] <= 2.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,156,126,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 2.000000 && feature.properties['NUMPOINTS'] <= 3.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,134,102,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 3.000000 && feature.properties['NUMPOINTS'] <= 3.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(251,112,80,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 3.000000 && feature.properties['NUMPOINTS'] <= 4.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(246,87,62,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 4.000000 && feature.properties['NUMPOINTS'] <= 5.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(240,62,46,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 5.000000 && feature.properties['NUMPOINTS'] <= 6.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,42,37,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 6.000000 && feature.properties['NUMPOINTS'] <= 8.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,24,29,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 8.000000 && feature.properties['NUMPOINTS'] <= 10.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(179,18,24,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 10.000000 && feature.properties['NUMPOINTS'] <= 15.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(147,11,19,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['NUMPOINTS'] >= 15.000000 && feature.properties['NUMPOINTS'] <= 84.000000 ) {
+                return {
+                pane: 'pane_h3_1km_all_4',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(103,0,13,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_h3_1km_all_4');
+        map.getPane('pane_h3_1km_all_4').style.zIndex = 404;
+        map.getPane('pane_h3_1km_all_4').style['mix-blend-mode'] = 'normal';
+        var layer_h3_1km_all_4 = new L.geoJson(json_h3_1km_all_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_h3_1km_all_4',
+            layerName: 'layer_h3_1km_all_4',
+            pane: 'pane_h3_1km_all_4',
+            onEachFeature: pop_h3_1km_all_4,
+            style: style_h3_1km_all_4_0,
+        });
+        bounds_group.addLayer(layer_h3_1km_all_4);
+        function pop_restaurants_5(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">id</th>\
+                        <td>' + (feature.properties['id'] !== null ? autolinker.link(feature.properties['id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">addr_house</th>\
+                        <td>' + (feature.properties['addr_house'] !== null ? autolinker.link(feature.properties['addr_house'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">addr_stree</th>\
+                        <td>' + (feature.properties['addr_stree'] !== null ? autolinker.link(feature.properties['addr_stree'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">cuisine</th>\
+                        <td>' + (feature.properties['cuisine'] !== null ? autolinker.link(feature.properties['cuisine'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">name</th>\
+                        <td>' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">CATEGORY</th>\
+                        <td>' + (feature.properties['CATEGORY'] !== null ? autolinker.link(feature.properties['CATEGORY'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_restaurants_5_0(feature) {
+            switch(String(feature.properties['CATEGORY'])) {
+                case 'American':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(222,38,121,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Asian':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(237,104,51,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'BBQ':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(217,140,132,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Breakfast':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(208,134,73,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Burger':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,21,159,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Cafe':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(224,98,132,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Chicken':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(196,23,230,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Chinese':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(25,77,220,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'European':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(225,197,71,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Fine Dining':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(116,104,228,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'French':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(133,65,210,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Grill':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(90,202,50,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Indian':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(151,58,201,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'International':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(110,75,200,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Italian':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(34,206,111,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Japanese':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(38,184,221,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kebab':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(148,213,35,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Korean':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,97,198,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Latin American':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(240,189,101,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mediterranean':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(50,216,64,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mexican':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,226,99,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Middle Eastern':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,87,98,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Pizza':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(71,227,53,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Polish':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(54,150,209,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Regional':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(34,51,236,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Seafood':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(117,161,215,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Steakhouse':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(52,209,94,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Sushi':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(51,227,230,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Thai':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,201,61,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Turkish':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(129,216,58,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Vegetarian':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,91,201,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Vietnamese':
+                    return {
+                pane: 'pane_restaurants_5',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(124,236,195,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_restaurants_5');
+        map.getPane('pane_restaurants_5').style.zIndex = 405;
+        map.getPane('pane_restaurants_5').style['mix-blend-mode'] = 'normal';
+        var layer_restaurants_5 = new L.geoJson(json_restaurants_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_restaurants_5',
+            layerName: 'layer_restaurants_5',
+            pane: 'pane_restaurants_5',
+            onEachFeature: pop_restaurants_5,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_restaurants_5_0(feature));
+            },
+        });
+        var cluster_restaurants_5 = new L.MarkerClusterGroup({showCoverageOnHover: false,
+            spiderfyDistanceMultiplier: 2});
+        cluster_restaurants_5.addLayer(layer_restaurants_5);
+
+        bounds_group.addLayer(layer_restaurants_5);
+        function pop_warsaw_density_age_6(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['nazwa_dzie'] !== null ? autolinker.link(feature.properties['nazwa_dzie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">pop_2020</th>\
+                        <td class="visible-with-data" id="pop_2020">' + (feature.properties['pop_2020'] !== null ? autolinker.link(feature.properties['pop_2020'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pop_change'] !== null ? autolinker.link(feature.properties['pop_change'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['area'] !== null ? autolinker.link(feature.properties['area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['dens'] !== null ? autolinker.link(feature.properties['dens'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pre-workin'] !== null ? autolinker.link(feature.properties['pre-workin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['working'] !== null ? autolinker.link(feature.properties['working'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['post-worki'] !== null ? autolinker.link(feature.properties['post-worki'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_warsaw_density_age_6_0(feature) {
+            if (feature.properties['dens'] >= 698.000000 && feature.properties['dens'] <= 848.000000 ) {
+                return {
+                pane: 'pane_warsaw_density_age_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(174,0,23,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['dens'] >= 548.000000 && feature.properties['dens'] <= 698.000000 ) {
+                return {
+                pane: 'pane_warsaw_density_age_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(211,32,32,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['dens'] >= 398.000000 && feature.properties['dens'] <= 548.000000 ) {
+                return {
+                pane: 'pane_warsaw_density_age_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(251,112,80,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['dens'] >= 248.000000 && feature.properties['dens'] <= 398.000000 ) {
+                return {
+                pane: 'pane_warsaw_density_age_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,190,165,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['dens'] >= 98.000000 && feature.properties['dens'] <= 248.000000 ) {
+                return {
+                pane: 'pane_warsaw_density_age_6',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,231,219,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_warsaw_density_age_6');
+        map.getPane('pane_warsaw_density_age_6').style.zIndex = 406;
+        map.getPane('pane_warsaw_density_age_6').style['mix-blend-mode'] = 'normal';
+        var layer_warsaw_density_age_6 = new L.geoJson(json_warsaw_density_age_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_warsaw_density_age_6',
+            layerName: 'layer_warsaw_density_age_6',
+            pane: 'pane_warsaw_density_age_6',
+            onEachFeature: pop_warsaw_density_age_6,
+            style: style_warsaw_density_age_6_0,
+        });
+        bounds_group.addLayer(layer_warsaw_density_age_6);
+        function pop_warsaw_dist_pop_7(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">nazwa_dzie</th>\
+                        <td>' + (feature.properties['nazwa_dzie'] !== null ? autolinker.link(feature.properties['nazwa_dzie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pop_2005'] !== null ? autolinker.link(feature.properties['pop_2005'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pop_2020'] !== null ? autolinker.link(feature.properties['pop_2020'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pop_change'] !== null ? autolinker.link(feature.properties['pop_change'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['area'] !== null ? autolinker.link(feature.properties['area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['dens'] !== null ? autolinker.link(feature.properties['dens'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['pre-workin'] !== null ? autolinker.link(feature.properties['pre-workin'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['working'] !== null ? autolinker.link(feature.properties['working'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['post-worki'] !== null ? autolinker.link(feature.properties['post-worki'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_warsaw_dist_pop_7_0(feature) {
+            if (feature.properties['pop_change'] >= 17988.721805 && feature.properties['pop_change'] <= 58960.000000 ) {
+                return {
+                pane: 'pane_warsaw_dist_pop_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(202,0,32,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['pop_change'] >= 2199.248120 && feature.properties['pop_change'] <= 17988.721805 ) {
+                return {
+                pane: 'pane_warsaw_dist_pop_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,165,130,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['pop_change'] >= -3345.864662 && feature.properties['pop_change'] <= 2199.248120 ) {
+                return {
+                pane: 'pane_warsaw_dist_pop_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,247,247,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['pop_change'] >= -13026.315789 && feature.properties['pop_change'] <= -3345.864662 ) {
+                return {
+                pane: 'pane_warsaw_dist_pop_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(146,197,222,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['pop_change'] >= -22170.000000 && feature.properties['pop_change'] <= -13026.315789 ) {
+                return {
+                pane: 'pane_warsaw_dist_pop_7',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(5,113,176,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_warsaw_dist_pop_7');
+        map.getPane('pane_warsaw_dist_pop_7').style.zIndex = 407;
+        map.getPane('pane_warsaw_dist_pop_7').style['mix-blend-mode'] = 'normal';
+        var layer_warsaw_dist_pop_7 = new L.geoJson(json_warsaw_dist_pop_7, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_warsaw_dist_pop_7',
+            layerName: 'layer_warsaw_dist_pop_7',
+            pane: 'pane_warsaw_dist_pop_7',
+            onEachFeature: pop_warsaw_dist_pop_7,
+            style: style_warsaw_dist_pop_7_0,
+        });
+        bounds_group.addLayer(layer_warsaw_dist_pop_7);
+        function pop_warsaw_dist_8(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['nazwa_dzie'] !== null ? autolinker.link(feature.properties['nazwa_dzie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_warsaw_dist_8_0() {
+            return {
+                pane: 'pane_warsaw_dist_8',
+                opacity: 1,
+                color: 'rgba(128,128,128,0.9019607843137255)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 3.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(243,166,178,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_warsaw_dist_8');
+        map.getPane('pane_warsaw_dist_8').style.zIndex = 408;
+        map.getPane('pane_warsaw_dist_8').style['mix-blend-mode'] = 'normal';
+        var layer_warsaw_dist_8 = new L.geoJson(json_warsaw_dist_8, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_warsaw_dist_8',
+            layerName: 'layer_warsaw_dist_8',
+            pane: 'pane_warsaw_dist_8',
+            onEachFeature: pop_warsaw_dist_8,
+            style: style_warsaw_dist_8_0,
+        });
+        bounds_group.addLayer(layer_warsaw_dist_8);
+        map.addLayer(layer_warsaw_dist_8);
+        function pop_warsaw_bond_9(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_SJR_KO'] !== null ? autolinker.link(feature.properties['JPT_SJR_KO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KOD_JE'] !== null ? autolinker.link(feature.properties['JPT_KOD_JE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_NAZWA_'] !== null ? autolinker.link(feature.properties['JPT_NAZWA_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_ORGAN_'] !== null ? autolinker.link(feature.properties['JPT_ORGAN_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_JOR_ID'] !== null ? autolinker.link(feature.properties['JPT_JOR_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WERSJA_OD'] !== null ? autolinker.link(feature.properties['WERSJA_OD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WERSJA_DO'] !== null ? autolinker.link(feature.properties['WERSJA_DO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WAZNY_OD'] !== null ? autolinker.link(feature.properties['WAZNY_OD'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['WAZNY_DO'] !== null ? autolinker.link(feature.properties['WAZNY_DO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KOD__1'] !== null ? autolinker.link(feature.properties['JPT_KOD__1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_NAZWA1'] !== null ? autolinker.link(feature.properties['JPT_NAZWA1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_ORGAN1'] !== null ? autolinker.link(feature.properties['JPT_ORGAN1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_WAZNA_'] !== null ? autolinker.link(feature.properties['JPT_WAZNA_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_BUFORA_'] !== null ? autolinker.link(feature.properties['ID_BUFORA_'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_BUFORA1'] !== null ? autolinker.link(feature.properties['ID_BUFORA1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_TECHNIC'] !== null ? autolinker.link(feature.properties['ID_TECHNIC'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IIP_PRZEST'] !== null ? autolinker.link(feature.properties['IIP_PRZEST'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IIP_IDENTY'] !== null ? autolinker.link(feature.properties['IIP_IDENTY'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['IIP_WERSJA'] !== null ? autolinker.link(feature.properties['IIP_WERSJA'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KJ_IIP'] !== null ? autolinker.link(feature.properties['JPT_KJ_IIP'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KJ_I_1'] !== null ? autolinker.link(feature.properties['JPT_KJ_I_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KJ_I_2'] !== null ? autolinker.link(feature.properties['JPT_KJ_I_2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_OPIS'] !== null ? autolinker.link(feature.properties['JPT_OPIS'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_SPS_KO'] !== null ? autolinker.link(feature.properties['JPT_SPS_KO'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ID_BUFOR_1'] !== null ? autolinker.link(feature.properties['ID_BUFOR_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_ID'] !== null ? autolinker.link(feature.properties['JPT_ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['JPT_KJ_I_3'] !== null ? autolinker.link(feature.properties['JPT_KJ_I_3'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(feature.properties['Shape_Leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_warsaw_bond_9_0() {
+            return {
+                pane: 'pane_warsaw_bond_9',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 4.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(125,139,143,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_warsaw_bond_9');
+        map.getPane('pane_warsaw_bond_9').style.zIndex = 409;
+        map.getPane('pane_warsaw_bond_9').style['mix-blend-mode'] = 'normal';
+        var layer_warsaw_bond_9 = new L.geoJson(json_warsaw_bond_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_warsaw_bond_9',
+            layerName: 'layer_warsaw_bond_9',
+            pane: 'pane_warsaw_bond_9',
+            onEachFeature: pop_warsaw_bond_9,
+            style: style_warsaw_bond_9_0,
+        });
+        bounds_group.addLayer(layer_warsaw_bond_9);
+        map.addLayer(layer_warsaw_bond_9);
+        function pop_offers_10(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">name</th>\
+                        <td>' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">address</th>\
+                        <td>' + (feature.properties['address'] !== null ? autolinker.link(feature.properties['address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">area [m2]</th>\
+                        <td>' + (feature.properties['area [m2]'] !== null ? autolinker.link(feature.properties['area [m2]'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">price[PLN]</th>\
+                        <td>' + (feature.properties['price[PLN]'] !== null ? autolinker.link(feature.properties['price[PLN]'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PLN/m2</th>\
+                        <td>' + (feature.properties['PLN/m2'] !== null ? autolinker.link(feature.properties['PLN/m2'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">descriptio</th>\
+                        <td>' + (feature.properties['descriptio'] !== null ? autolinker.link(feature.properties['descriptio'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">url</th>\
+                        <td>' + (feature.properties['url'] !== null ? autolinker.link(feature.properties['url'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">ID</th>\
+                        <td>' + (feature.properties['ID'] !== null ? autolinker.link(feature.properties['ID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+            var popup = layer.getPopup();
+            var content = popup.getContent();
+            var updatedContent = removeEmptyRowsFromPopupContent(content, feature);
+            popup.setContent(updatedContent);
+        }
+
+        function style_offers_10_0(feature) {
+            if (feature.properties['PLN/m2'] >= 69.000000 && feature.properties['PLN/m2'] <= 6578.212291 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(252,253,191,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['PLN/m2'] >= 6578.212291 && feature.properties['PLN/m2'] <= 8149.000000 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,159,109,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['PLN/m2'] >= 8149.000000 && feature.properties['PLN/m2'] <= 16229.000000 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,74,105,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['PLN/m2'] >= 16229.000000 && feature.properties['PLN/m2'] <= 24309.000000 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(140,41,129,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['PLN/m2'] >= 24309.000000 && feature.properties['PLN/m2'] <= 32389.000000 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(59,15,111,1.0)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['PLN/m2'] >= 32389.000000 && feature.properties['PLN/m2'] <= 40469.000000 ) {
+                return {
+                pane: 'pane_offers_10',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,0,4,1.0)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_offers_10');
+        map.getPane('pane_offers_10').style.zIndex = 410;
+        map.getPane('pane_offers_10').style['mix-blend-mode'] = 'normal';
+        var layer_offers_10 = new L.geoJson(json_offers_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_offers_10',
+            layerName: 'layer_offers_10',
+            pane: 'pane_offers_10',
+            onEachFeature: pop_offers_10,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_offers_10_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_offers_10);
+        map.addLayer(layer_offers_10);
+            var title = new L.Control();
+            title.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info');
+                this.update();
+                return this._div;
+            };
+            title.update = function () {
+                this._div.innerHTML = '<h2>Warsaw Restaurant Site Selection</h2>';
+            };
+            title.addTo(map);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        var overlaysTree = [
+            {label: 'offers<br /><table><tr><td style="text-align: center;"><img src="legend/offers_10_65790.png" /></td><td><6579</td></tr><tr><td style="text-align: center;"><img src="legend/offers_10_658081491.png" /></td><td>6580 - 8149</td></tr><tr><td style="text-align: center;"><img src="legend/offers_10_8150162292.png" /></td><td>8150 - 16229</td></tr><tr><td style="text-align: center;"><img src="legend/offers_10_16230243093.png" /></td><td>16230 - 24309</td></tr><tr><td style="text-align: center;"><img src="legend/offers_10_24310323894.png" /></td><td>24310 - 32389</td></tr><tr><td style="text-align: center;"><img src="legend/offers_10_32390404695.png" /></td><td>32390 - 40469</td></tr></table>', layer: layer_offers_10},
+            {label: '<img src="legend/warsaw_bond_9.png" /> warsaw_bond', layer: layer_warsaw_bond_9},
+            {label: '<img src="legend/warsaw_dist_8.png" /> warsaw_dist', layer: layer_warsaw_dist_8},
+        {label: '<b>Demography</b>', selectAllCheckbox: true, children: [
+            {label: 'warsaw_dist_pop<br /><table><tr><td style="text-align: center;"><img src="legend/warsaw_dist_pop_7_popgroth18000590000.png" /></td><td>pop. groth [18000 - 59000]</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_dist_pop_7_popgroth2500179991.png" /></td><td>pop. groth  [2500 - 17999]</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_dist_pop_7_smallchanges250025002.png" /></td><td>small changes [-2500 - 2500]</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_dist_pop_7_popdecrease2501100003.png" /></td><td>pop. decrease [-2501 - -10000]</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_dist_pop_7_popdecrease10001150004.png" /></td><td>pop.decrease [-10001 - -15000]</td></tr></table>', layer: layer_warsaw_dist_pop_7},
+            {label: 'warsaw_density_age<br /><table><tr><td style="text-align: center;"><img src="legend/warsaw_density_age_6_7008480.png" /></td><td>700 - 848</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_density_age_6_5506991.png" /></td><td>550 - 699</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_density_age_6_4005492.png" /></td><td>400 - 549</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_density_age_6_2503993.png" /></td><td>250 - 399</td></tr><tr><td style="text-align: center;"><img src="legend/warsaw_density_age_6_982494.png" /></td><td>98 - 249</td></tr></table>', layer: layer_warsaw_density_age_6},]},
+        {label: '<b>Restaurants</b>', selectAllCheckbox: true, children: [
+            {label: 'restaurants<br /><table><tr><td style="text-align: center;"><img src="legend/restaurants_5_American0.png" /></td><td>American</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Asian1.png" /></td><td>Asian</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_BBQ2.png" /></td><td>BBQ</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Breakfast3.png" /></td><td>Breakfast</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Burger4.png" /></td><td>Burger</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Cafe5.png" /></td><td>Cafe</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Chicken6.png" /></td><td>Chicken</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Chinese7.png" /></td><td>Chinese</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_European8.png" /></td><td>European</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_FineDining9.png" /></td><td>Fine Dining</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_French10.png" /></td><td>French</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Grill11.png" /></td><td>Grill</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Indian12.png" /></td><td>Indian</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_International13.png" /></td><td>International</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Italian14.png" /></td><td>Italian</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Japanese15.png" /></td><td>Japanese</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Kebab16.png" /></td><td>Kebab</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Korean17.png" /></td><td>Korean</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_LatinAmerican18.png" /></td><td>Latin American</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Mediterranean19.png" /></td><td>Mediterranean</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Mexican20.png" /></td><td>Mexican</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_MiddleEastern21.png" /></td><td>Middle Eastern</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Pizza22.png" /></td><td>Pizza</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Polish23.png" /></td><td>Polish</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Regional24.png" /></td><td>Regional</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Seafood25.png" /></td><td>Seafood</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Steakhouse26.png" /></td><td>Steakhouse</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Sushi27.png" /></td><td>Sushi</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Thai28.png" /></td><td>Thai</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Turkish29.png" /></td><td>Turkish</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Vegetarian30.png" /></td><td>Vegetarian</td></tr><tr><td style="text-align: center;"><img src="legend/restaurants_5_Vietnamese31.png" /></td><td>Vietnamese</td></tr></table>', layer: cluster_restaurants_5},
+            {label: 'h3_1km_all<br /><table><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000100000.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000100001.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000100002.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000100003.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000200004.png" /></td><td>1.0000 - 2.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_20000200005.png" /></td><td>2.0000 - 2.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_20000300006.png" /></td><td>2.0000 - 3.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_30000300007.png" /></td><td>3.0000 - 3.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_30000400008.png" /></td><td>3.0000 - 4.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_40000500009.png" /></td><td>4.0000 - 5.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_500006000010.png" /></td><td>5.0000 - 6.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_600008000011.png" /></td><td>6.0000 - 8.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_8000010000012.png" /></td><td>8.0000 - 10.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_10000015000013.png" /></td><td>10.0000 - 15.0000</td></tr><tr><td style="text-align: center;"><img src="legend/h3_1km_all_4_15000084000014.png" /></td><td>15.0000 - 84.0000</td></tr></table>', layer: layer_h3_1km_all_4},
+            {label: 'pizza_h3<br /><table><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100000.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100001.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100002.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100003.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100004.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100005.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100006.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100007.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000100008.png" /></td><td>1.0000 - 1.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_10000200009.png" /></td><td>1.0000 - 2.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_200002000010.png" /></td><td>2.0000 - 2.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_200003000011.png" /></td><td>2.0000 - 3.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_300003000012.png" /></td><td>3.0000 - 3.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_300003000013.png" /></td><td>3.0000 - 3.0000</td></tr><tr><td style="text-align: center;"><img src="legend/pizza_h3_3_300008000014.png" /></td><td>3.0000 - 8.0000</td></tr></table>', layer: layer_pizza_h3_3},
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_0},]},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var i = 0;
+        layer_warsaw_dist_pop_7.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['nazwa_dzie'] !== null?String('<div style="color: #323232; font-size: 10pt; font-weight: bold; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['nazwa_dzie']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_warsaw_dist_pop_7'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        function geoJson2heat(geojson, weight) {
+          return geojson.features.map(function(feature) {
+            return [
+              feature.geometry.coordinates[1],
+              feature.geometry.coordinates[0],
+              feature.properties[weight]
+            ];
+          });
+        }
+        resetLabels([layer_warsaw_density_age_6,layer_warsaw_dist_pop_7,layer_warsaw_dist_8]);
+        map.on("zoomend", function(){
+            resetLabels([layer_warsaw_density_age_6,layer_warsaw_dist_pop_7,layer_warsaw_dist_8]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_warsaw_density_age_6,layer_warsaw_dist_pop_7,layer_warsaw_dist_8]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_warsaw_density_age_6,layer_warsaw_dist_pop_7,layer_warsaw_dist_8]);
+        });
+        </script>
+    </body>
+</html>
